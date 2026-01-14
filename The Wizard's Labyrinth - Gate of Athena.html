@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>The Wizard's Labyrinth: Infinite Edition</title>
+    <style>
+        :root {
+            --gold: #d4af37;
+            --blood: #8b0000;
+            --void: #0a0a0c;
+            --ghost-blue: #a0d8ef;
+            --rune-glow: #00f2ff;
+        }
+        body {
+            background-color: var(--void);
+            color: #ccc;
+            font-family: 'Crimson Text', serif;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+        #game-board {
+            max-width: 850px;
+            width: 100%;
+            border: 2px solid var(--gold);
+            background: rgba(20, 20, 25, 0.98);
+            padding: 40px;
+            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 100px rgba(212, 175, 55, 0.1);
+        }
+        #wizard-viewport {
+            width: 100%;
+            height: 350px;
+            border: 1px solid var(--gold);
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            box-shadow: inset 0 -120px 100px rgba(0,0,0,0.9);
+        }
+        #wizard-speech {
+            padding: 25px;
+            font-style: italic;
+            font-size: 1.3rem;
+            color: #fff;
+            text-shadow: 2px 2px 8px #000;
+            line-height: 1.4;
+        }
+        .choice-btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin: 12px 0;
+            background: #111;
+            color: var(--gold);
+            border: 1px solid #444;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: 0.3s;
+        }
+        .choice-btn:hover { 
+            border-color: var(--rune-glow); 
+            background: #222; 
+            box-shadow: 0 0 10px var(--rune-glow); 
+        }
+        .graveyard-list {
+            background: rgba(255,255,255,0.05);
+            border: 1px dashed #444;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .ghost-entry { 
+            color: var(--ghost-blue); 
+            font-style: italic; 
+            margin-bottom: 8px; 
+            border-bottom: 1px solid #222; 
+        }
+        .status-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 10px; 
+            color: var(--gold); 
+            font-weight: bold; 
+        }
+        #audio-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(20, 20, 25, 0.95);
+            border: 1px solid var(--gold);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 200px;
+        }
+        #volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #volume-slider {
+            flex: 1;
+            height: 4px;
+            background: #444;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        #volume-slider::-webkit-slider-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--gold);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        #volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--gold);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .audio-btn {
+            background: #111;
+            color: var(--gold);
+            border: 1px solid #444;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+        .audio-btn:hover {
+            border-color: var(--rune-glow);
+            background: #222;
+        }
+        .audio-btn.active {
+            background: var(--gold);
+            color: #000;
+        }
+        #music-upload {
+            display: none;
+        }
+        .upload-label {
+            background: #111;
+            color: var(--gold);
+            border: 1px solid #444;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            text-align: center;
+            display: block;
+        }
+        .upload-label:hover {
+            border-color: var(--rune-glow);
+            background: #222;
+        }
+        #voice-status {
+            color: var(--ghost-blue);
+            font-size: 0.85rem;
+            text-align: center;
+            font-style: italic;
+        }
+        .small-text {
+            font-size: 0.75rem;
+            color: #888;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-board">
+    <div id="setup-screen">
+        <h1>Wizard's Labyrinth</h1>
+        <div id="p-inputs">
+            <div style="margin-bottom:10px;">
+                <input type="text" id="p1" placeholder="Traveler Name" style="padding:10px; width:60%">
+                <select id="c1" style="padding:10px;">
+                    <option value="Spellblade">Spellblade</option>
+                    <option value="Alchemist">Alchemist</option>
+                    <option value="Paladin">Paladin</option>
+                    <option value="Shadow Weaver">Shadow Weaver</option>
+                </select>
+            </div>
+        </div>
+        <button class="choice-btn" onclick="addPlayer()">+ Summon Another Player</button>
+        <button class="choice-btn" style="background:var(--gold); color:black;" onclick="initGame()">Unfurl the Map</button>
+    </div>
+
+    <div id="play-screen" style="display:none;">
+        <div class="status-bar">
+            <span id="current-player-name"></span>
+            <span id="step-count">Step: 0/10</span>
+        </div>
+        <div id="wizard-viewport"><div id="wizard-speech"></div></div>
+        <div id="choice-list"></div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="audio-btn" id="voice-toggle" onclick="toggleVoice()">🎙️ Enable Voice Reading</button>
+            <button class="audio-btn" id="listen-toggle" onclick="toggleListening()" style="display:none;">🎤 Voice Answer (Off)</button>
+            <div id="voice-status" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+
+    <div id="win-screen" style="display:none; text-align:center;">
+        <h1 id="win-msg" style="font-size:3rem;"></h1>
+        <p id="win-desc" style="font-size:1.5rem;"></p>
+        <hr border="1" color="#d4af37">
+        <h3>The Eternal Graveyard</h3>
+        <p>Memory of the Fallen:</p>
+        <div id="grave-site" class="graveyard-list"></div>
+        <button class="choice-btn" onclick="location.reload()">Start a New Cycle</button>
+    </div>
+</div>
+
+<div id="audio-controls">
+    <div style="color: var(--gold); font-weight: bold; text-align: center; margin-bottom: 5px;">🎵 Audio Controls</div>
+    <label for="music-upload" class="upload-label">📁 Upload Music</label>
+    <input type="file" id="music-upload" accept="audio/*" multiple onchange="loadMusic(event)">
+    <div class="small-text" id="track-info">No music loaded</div>
+    <button class="audio-btn" id="music-toggle" onclick="toggleMusic()">🔇 Music Off</button>
+    <div id="volume-control">
+        <span style="color: var(--gold);">🔊</span>
+        <input type="range" id="volume-slider" min="0" max="100" value="50" oninput="updateVolume(this.value)">
+        <span style="color: var(--gold); font-size: 0.9rem;" id="volume-display">50%</span>
+    </div>
+</div>
+
+<audio id="game-audio" loop></audio>
+
+<script>
+let players = [];
+let graveyard = [];
+let turn = 0;
+let pCount = 1;
+let history = [];
+
+// Audio variables
+let musicTracks = [];
+let currentTrackIndex = 0;
+let musicEnabled = false;
+let audioElement = document.getElementById('game-audio');
+
+// Voice variables
+let voiceEnabled = false;
+let listeningEnabled = false;
+let recognition = null;
+let currentChoices = [];
+
+const tiers = [
+    [ // TIER 1: THE OUTER GATES (Steps 1-2)
+        {t: "A gate of liquid mercury bars the path. It demands a piece of your soul.", img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23", p: [{n: "Offer a vial of blood", v: "f"}, {n: "Recite your first love's name", v: "b"}, {n: "Climb the silver bars", v: "d"}]},
+        {t: "A gargoyle of obsidian blocks the way. He asks for a riddle of silence.", img: "https://images.unsplash.com/photo-1600100397608-f09072990924", p: [{n: "Cover your ears and walk", v: "f"}, {n: "Whisper your darkest fear", v: "b"}, {n: "Smash the stone head", v: "d"}]},
+        {t: "A bridge of shifting sand spans a bottomless pit of gold.", img: "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634", p: [{n: "Step on the silver grains", v: "f"}, {n: "Step on the gold grains", v: "b"}, {n: "Dive into the riches", v: "d"}]},
+        {t: "The Wizard stands by a well. 'Throw in something you love,' he commands.", img: "https://images.unsplash.com/photo-1578307336416-0c9780287532", p: [{n: "Throw in your weapon", v: "f"}, {n: "Throw in a coin", v: "b"}, {n: "Spit into the water", v: "d"}]},
+        {t: "A pack of spectral wolves blocks the road, their eyes glowing violet.", img: "https://images.unsplash.com/photo-1550965324-5e0436399071", p: [{n: "Kneel and show submission", v: "f"}, {n: "Howl back at them", v: "b"}, {n: "Try to run past", v: "d"}]},
+        {t: "Two doors stand before you: one weeps blood, the other whispers promises.", img: "https://images.unsplash.com/photo-1505142468610-359e7d316be0", p: [{n: "Enter the weeping door", v: "f"}, {n: "Enter the whispering door", v: "b"}, {n: "Kick both doors down", v: "d"}]},
+        {t: "A child in rags offers you a black lotus. Their eyes are ancient.", img: "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70", p: [{n: "Accept the flower gently", v: "f"}, {n: "Give them your food", v: "b"}, {n: "Ignore them completely", v: "d"}]},
+        {t: "The path splits around a weeping willow made of iron chains.", img: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e", p: [{n: "Walk through the chains", v: "f"}, {n: "Go left around the tree", v: "b"}, {n: "Cut through the tree", v: "d"}]},
+        {t: "A fountain of ash bubbles before you. Coins of bone rest at the bottom.", img: "https://images.unsplash.com/photo-1582407947304-fd86f028f716", p: [{n: "Wash your face in the ash", v: "f"}, {n: "Take a bone coin", v: "b"}, {n: "Drink from the fountain", v: "d"}]},
+        {t: "Three masks hang on hooks: Comedy, Tragedy, and Void.", img: "https://images.unsplash.com/photo-1516627145497-ae6968895b74", p: [{n: "Wear the Void mask", v: "f"}, {n: "Wear the Comedy mask", v: "b"}, {n: "Wear the Tragedy mask", v: "d"}]}
+    ],
+    [ // TIER 2: THE WHISPERING WILDS (Steps 3-4)
+        {t: "The Clockwork Bridge ticks like a dying heart. Pendulums swing wildly.", img: "https://images.unsplash.com/photo-1508913922315-77382d634289", p: [{n: "Walk to the beat of your pulse", v: "f"}, {n: "Wait for the rhythm to stop", v: "b"}, {n: "Sprint through the gears", v: "d"}]},
+        {t: "A field of flowers with human faces watch you pass. They smell of honey and rot.", img: "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d", p: [{n: "Hold your breath", v: "f"}, {n: "Pick a flower", v: "b"}, {n: "Sleep among them", v: "d"}]},
+        {t: "A river of liquid starlight flows vertically into the sky.", img: "https://images.unsplash.com/photo-1464802686167-b939a67e06a1", p: [{n: "Walk on your hands", v: "f"}, {n: "Drink the starlight", v: "b"}, {n: "Jump into the flow", v: "d"}]},
+        {t: "The trees here are made of glass. They reflect your most painful memory.", img: "https://images.unsplash.com/photo-1502082553048-f009c37129b9", p: [{n: "Close your eyes and walk", v: "f"}, {n: "Stare into the glass", v: "b"}, {n: "Shatter a tree", v: "d"}]},
+        {t: "An old hag offers you three apples: Gold, Bone, and Flesh.", img: "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce", p: [{n: "Take the Apple of Bone", v: "f"}, {n: "Take the Apple of Gold", v: "b"}, {n: "Eat the Apple of Flesh", v: "d"}]},
+        {t: "A carousel of stone horses spins in silence. One seat is made of feathers.", img: "https://images.unsplash.com/photo-1513326738677-b964603b136d", p: [{n: "Sit on the feathered seat", v: "f"}, {n: "Stop the carousel", v: "b"}, {n: "Break a stone horse", v: "d"}]},
+        {t: "The ground becomes a mirror showing the sky. Above, the real ground waits.", img: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a", p: [{n: "Walk on the mirror", v: "f"}, {n: "Try to climb up", v: "b"}, {n: "Shatter your reflection", v: "d"}]},
+        {t: "A violin plays itself in the mist. Its strings are made of spider silk.", img: "https://images.unsplash.com/photo-1511379938547-c1f69419868d", p: [{n: "Dance to the music", v: "f"}, {n: "Take the violin", v: "b"}, {n: "Cut the strings", v: "d"}]},
+        {t: "Butterflies made of stained glass circle a pillar of salt.", img: "https://images.unsplash.com/photo-1524293581917-878a6d017c71", p: [{n: "Follow the butterflies", v: "f"}, {n: "Taste the salt", v: "b"}, {n: "Catch a butterfly", v: "d"}]},
+        {t: "A chess board stretches into infinity. The pieces are moving on their own.", img: "https://images.unsplash.com/photo-1529699211952-734e80c4d42b", p: [{n: "Move the white queen", v: "f"}, {n: "Move the black king", v: "b"}, {n: "Flip the board", v: "d"}]},
+        {t: "Rain falls upward here, vanishing into a purple sky.", img: "https://images.unsplash.com/photo-1428908728789-d2de25dbd4e2", p: [{n: "Lie down in the rain", v: "f"}, {n: "Try to catch the drops", v: "b"}, {n: "Run through it", v: "d"}]},
+        {t: "A painter with no face works on a canvas. It shows your death.", img: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b", p: [{n: "Watch them finish", v: "f"}, {n: "Paint over your death", v: "b"}, {n: "Destroy the canvas", v: "d"}]}
+    ],
+    [ // TIER 3: THE FORGOTTEN SANCTUM (Steps 5-6)
+        {t: "The Mirror of Truth shows you as a king. It feels so real.", img: "https://images.unsplash.com/photo-1595113316349-9fa4eb24f884", p: [{n: "Shatter the mirror", v: "f"}, {n: "Bow to yourself", v: "b"}, {n: "Step into the glass", v: "d"}]},
+        {t: "The Ravenous King demands a feast. He wants your sense of taste.", img: "https://images.unsplash.com/photo-1599422315624-c524e7ad33b7", p: [{n: "Surrender your taste", v: "f"}, {n: "Offer him your sword", v: "b"}, {n: "Insult his table", v: "d"}]},
+        {t: "A library of books that scream when opened. One contains the path.", img: "https://images.unsplash.com/photo-1507842217343-583bb7270b66", p: [{n: "Open the book of silence", v: "f"}, {n: "Open the book of fire", v: "b"}, {n: "Open the book of blood", v: "d"}]},
+        {t: "A statue of yourself holds the key. It looks more alive than you.", img: "https://images.unsplash.com/photo-1554188248-986adbb73be4", p: [{n: "Trade places with it", v: "f"}, {n: "Kiss the statue", v: "b"}, {n: "Try to steal the key", v: "d"}]},
+        {t: "An hourglass the size of a cathedral drips time like honey.", img: "https://images.unsplash.com/photo-1533035353720-f1c6a75cd8ab", p: [{n: "Wait for it to empty", v: "f"}, {n: "Flip the hourglass", v: "b"}, {n: "Smash the glass", v: "d"}]},
+        {t: "The Hall of Ancestors. Every painting is someone you killed in a past life.", img: "https://images.unsplash.com/photo-1580974852861-c381510bc98a", p: [{n: "Apologize to each one", v: "f"}, {n: "Cover the paintings", v: "b"}, {n: "Set them ablaze", v: "d"}]},
+        {t: "A throne of thorns sits empty. A crown of moths rests upon it.", img: "https://images.unsplash.com/photo-1521016765891-f8108c8ee1e9", p: [{n: "Sit on the throne", v: "f"}, {n: "Take the crown carefully", v: "b"}, {n: "Destroy the throne", v: "d"}]},
+        {t: "Your mother's voice calls from behind a locked iron door.", img: "https://images.unsplash.com/photo-1534278931827-8a259344abe7", p: [{n: "Answer through the door", v: "f"}, {n: "Walk away quietly", v: "b"}, {n: "Break down the door", v: "d"}]},
+        {t: "A banquet table set for one. The food is still warm. Still waiting.", img: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1", p: [{n: "Sit and eat alone", v: "f"}, {n: "Set the table for two", v: "b"}, {n: "Overturn the table", v: "d"}]},
+        {t: "The Garden of Frozen Children. They're not dead. Just perfectly still.", img: "https://images.unsplash.com/photo-1490730141103-6cac27aaab94", p: [{n: "Place flowers at their feet", v: "f"}, {n: "Try to warm one child", v: "b"}, {n: "Take a frozen hand", v: "d"}]}
+    ],
+    [ // TIER 4: THE VOID REACHES (Steps 7-8)
+        {t: "Gravity fails. You are falling toward a ceiling of burning iron.", img: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa", p: [{n: "Let go of your weight", v: "f"}, {n: "Cling to the floor", v: "b"}, {n: "Try to fly upward", v: "d"}]},
+        {t: "The Oracle's Threads hang from a black sun. One is your death.", img: "https://images.unsplash.com/photo-1509339022327-1e1e25360a41", p: [{n: "Pull the Red Thread", v: "f"}, {n: "Pull the Gold Thread", v: "b"}, {n: "Pull the Black Thread", v: "d"}]},
+        {t: "A hallway of doors that open into different lives you could have lived.", img: "https://images.unsplash.com/photo-1519608487913-d9d9b970e983", p: [{n: "Enter the door of the beggar", v: "f"}, {n: "Enter the door of the lover", v: "b"}, {n: "Enter the door of the god", v: "d"}]},
+        {t: "The sea of memory crashes against shores of forgetting. Faces surface and sink.", img: "https://images.unsplash.com/photo-1505142468610-359e7d316be0", p: [{n: "Swim into the depths", v: "f"}, {n: "Stand on the shore", v: "b"}, {n: "Drink the water", v: "d"}]},
+        {t: "Your heart walks ahead of you, trailing blood. It knows the way.", img: "https://images.unsplash.com/photo-1516450137517-162bfbeb8dba", p: [{n: "Follow your heart", v: "f"}, {n: "Call it back to you", v: "b"}, {n: "Let it go alone", v: "d"}]},
+        {t: "The Tower of Lies reaches into nothing. Each brick is a broken promise.", img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23", p: [{n: "Climb without looking up", v: "f"}, {n: "Pull out one brick", v: "b"}, {n: "Topple the tower", v: "d"}]},
+        {t: "A thousand versions of you stand in a circle, watching. Judging.", img: "https://images.unsplash.com/photo-1502139214982-d0ad755818d8", p: [{n: "Walk through them", v: "f"}, {n: "Ask them for advice", v: "b"}, {n: "Fight them all", v: "d"}]},
+        {t: "The Moon is falling. It will crush everything in three heartbeats.", img: "https://images.unsplash.com/photo-1506443432602-ac2fcd6f54e0", p: [{n: "Close your eyes and count", v: "f"}, {n: "Run from the shadow", v: "b"}, {n: "Try to catch the moon", v: "d"}]},
+        {t: "Your name is carved into every wall here. Each letter bleeds.", img: "https://images.unsplash.com/photo-1548109848-b7e0dfc9c4c6", p: [{n: "Erase your name", v: "f"}, {n: "Carve a new one", v: "b"}, {n: "Paint over the blood", v: "d"}]}
+    ],
+    [ // TIER 5: THE THRESHOLD (Steps 9-10)
+        {t: "The Wizard stands before the final gate. 'Who are you?' he asks.", img: "https://images.unsplash.com/photo-1514539079130-25950c84af65", p: [{n: "'I am nothing.'", v: "f"}, {n: "'I am your master.'", v: "b"}, {n: "'I am the winner.'", v: "d"}]},
+        {t: "Your Shadow steps out and offers you a hug before the end.", img: "https://images.unsplash.com/photo-1509248961158-e54f6934749c", p: [{n: "Embrace the shadow", v: "f"}, {n: "Reject the shadow", v: "b"}, {n: "Attack the shadow", v: "d"}]},
+        {t: "The Map of Aetheria begins to burn in your hands.", img: "https://images.unsplash.com/photo-1524293581917-878a6d017c71", p: [{n: "Drop the map and walk in", v: "f"}, {n: "Try to put out the fire", v: "b"}, {n: "Read the ashes", v: "d"}]},
+        {t: "The final door is made of your own bones. It breathes with your rhythm.", img: "https://images.unsplash.com/photo-1543722530-d2c3201371e7", p: [{n: "Walk through yourself", v: "f"}, {n: "Knock and wait", v: "b"}, {n: "Break the door apart", v: "d"}]},
+        {t: "God offers you their hand. They look tired. So very tired.", img: "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e", p: [{n: "Take the hand gently", v: "f"}, {n: "Ask them to rest", v: "b"}, {n: "Refuse the hand", v: "d"}]},
+        {t: "The price of victory stands before you: become the next Wizard.", img: "https://images.unsplash.com/photo-1520052205864-92d242b3a76b", p: [{n: "Accept the burden", v: "f"}, {n: "Seek another way", v: "b"}, {n: "Destroy the labyrinth", v: "d"}]},
+        {t: "Everything you've ever loved appears one last time to say goodbye.", img: "https://images.unsplash.com/photo-1518022210609-9c845c4e1e6e", p: [{n: "Say goodbye to each", v: "f"}, {n: "Beg them to stay", v: "b"}, {n: "Turn away from them", v: "d"}]},
+        {t: "The Heart of the Sun beats behind the last veil. It sounds like your mother.", img: "https://images.unsplash.com/photo-1502134249126-9f3755a50d78", p: [{n: "Part the veil slowly", v: "f"}, {n: "Call out to it", v: "b"}, {n: "Tear through the veil", v: "d"}]}
+    ]
+];
+
+const deaths = [
+    "was turned into a silver pillar.", 
+    "was lost in the garden's honey.", 
+    "was crushed by clockwork gears.", 
+    "was consumed by the Oracle's thread.", 
+    "was executed by their own shadow.", 
+    "was erased from time itself.",
+    "drowned in the vertical river.",
+    "became one with the weeping door.",
+    "was frozen with the children forever.",
+    "fell into the moon's shadow.",
+    "was devoured by their reflection.",
+    "merged with the faceless painter.",
+    "was strangled by the violin strings.",
+    "shattered like stained glass.",
+    "was buried in falling ash.",
+    "became a painting on the wall.",
+    "was torn apart by glass butterflies.",
+    "suffocated in upward rain.",
+    "was absorbed by the throne of thorns.",
+    "vanished into a door of regret.",
+    "was claimed by the sea of memory.",
+    "followed their heart into oblivion.",
+    "was crushed beneath broken promises.",
+    "was judged and found wanting.",
+    "became a letter in their own name."
+];
+
+function addPlayer() {
+    if(pCount >= 6) return;
+    pCount++;
+    const div = document.createElement('div');
+    div.innerHTML = `<input type="text" id="p${pCount}" placeholder="Name" style="padding:10px; width:60%; margin-top:5px;">
+                     <select id="c${pCount}" style="padding:10px;"><option value="Spellblade">Spellblade</option><option value="Alchemist">Alchemist</option><option value="Paladin">Paladin</option><option value="Shadow Weaver">Shadow Weaver</option></select>`;
+    document.getElementById('p-inputs').appendChild(div);
+}
+
+function initGame() {
+    for(let i=1; i<=pCount; i++) {
+        let name = document.getElementById(`p${i}`).value;
+        if(name) players.push({name, cls: document.getElementById(`c${i}`).value, step: 0});
+    }
+    if(!players.length) return alert("Summon a player!");
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('play-screen').style.display = 'block';
+    
+    // Start music if tracks are loaded
+    if(musicTracks.length > 0 && musicEnabled) {
+        playMusic();
+    }
+    
+    render();
+}
+
+function render() {
+    let p = players[turn];
+    document.getElementById('current-player-name').innerText = `${p.name} (${p.cls})`;
+    document.getElementById('step-count').innerText = `Step: ${p.step}/10`;
+
+    let tierIdx = Math.min(Math.floor(p.step / 2), 4);
+    let pool = tiers[tierIdx];
+    let scen = pool[Math.floor(Math.random() * pool.length)];
+
+    document.getElementById('wizard-viewport').style.backgroundImage = `url(${scen.img})`;
+    document.getElementById('wizard-speech').innerText = `"${scen.t}"`;
+
+    let list = document.getElementById('choice-list');
+    list.innerHTML = "";
+    
+    currentChoices = [...scen.p].sort(()=>Math.random()-0.5);
+    
+    currentChoices.forEach((opt, idx) => {
+        let b = document.createElement('button');
+        b.className = "choice-btn";
+        b.innerText = `${idx + 1}. ${opt.n}`;
+        b.onclick = () => act(opt.v);
+        list.appendChild(b);
+    });
+    
+    // Read the scenario if voice is enabled
+    if(voiceEnabled) {
+        speakText(scen.t, currentChoices);
+    }
+}
+
+function act(v) {
+    let p = players[turn];
+    if(v === 'f') {
+        p.step++;
+        if(p.step >= 10) return win(p);
+        alert("RIGHT PATH! You feel the power grow. MOVE AGAIN.");
+        render();
+    } else if (v === 'b') {
+        p.step = Math.max(0, p.step - 1);
+        alert("BACKWARDS. The Wizard laughs as you slip.");
+        turn = (turn + 1) % players.length;
+        render();
+    } else {
+        let deathReason = deaths[Math.floor(Math.random()*deaths.length)];
+        graveyard.push({name: p.name, reason: deathReason});
+        alert(`DEATH! ${p.name} ${deathReason}`);
+        p.step = 0;
+        p.name = prompt("That hero is gone. Enter the name of their successor:") || "The Hollow";
+        turn = (turn + 1) % players.length;
+        render();
+    }
+}
+
+function win(p) {
+    document.getElementById('play-screen').style.display = 'none';
+    document.getElementById('win-screen').style.display = 'block';
+    document.getElementById('win-msg').innerText = `${p.name} HAS ASCENDED!`;
+    document.getElementById('win-desc').innerText = `The Heart of the Sun is yours. As a ${p.cls}, the world will never be the same.`;
+    
+    // Stop music on win
+    stopMusic();
+    
+    let gSite = document.getElementById('grave-site');
+    if(!graveyard.length) gSite.innerHTML = "<p>A clean path. No one died.</p>";
+    else {
+        graveyard.forEach(g => {
+            let d = document.createElement('div');
+            d.className = "ghost-entry";
+            d.innerText = `† ${g.name} ${g.reason}`;
+            gSite.appendChild(d);
+        });
+    }
+}
+
+// Music Functions
+function loadMusic(event) {
+    const files = event.target.files;
+    musicTracks = [];
+    
+    for(let file of files) {
+        musicTracks.push(URL.createObjectURL(file));
+    }
+    
+    if(musicTracks.length > 0) {
+        document.getElementById('track-info').innerText = `${musicTracks.length} track(s) loaded`;
+        currentTrackIndex = 0;
+    }
+}
+
+function toggleMusic() {
+    musicEnabled = !musicEnabled;
+    const btn = document.getElementById('music-toggle');
+    
+    if(musicEnabled) {
+        btn.innerText = '🔊 Music On';
+        btn.classList.add('active');
+        if(musicTracks.length > 0) {
+            playMusic();
+        } else {
+            alert('Please upload music files first!');
+            musicEnabled = false;
+            btn.innerText = '🔇 Music Off';
+            btn.classList.remove('active');
+        }
+    } else {
+        btn.innerText = '🔇 Music Off';
+        btn.classList.remove('active');
+        stopMusic();
+    }
+}
+
+function playMusic() {
+    if(musicTracks.length === 0 || !musicEnabled) return;
+    
+    audioElement.src = musicTracks[currentTrackIndex];
+    audioElement.play();
+    
+    audioElement.onended = () => {
+        currentTrackIndex = (currentTrackIndex + 1) % musicTracks.length;
+        playMusic();
+    };
+}
+
+function stopMusic() {
+    audioElement.pause();
+    audioElement.currentTime = 0;
+}
+
+function updateVolume(value) {
+    audioElement.volume = value / 100;
+    document.getElementById('volume-display').innerText = value + '%';
+}
+
+// Voice Functions
+function toggleVoice() {
+    voiceEnabled = !voiceEnabled;
+    const btn = document.getElementById('voice-toggle');
+    const listenBtn = document.getElementById('listen-toggle');
+    
+    if(voiceEnabled) {
+        btn.innerText = '🎙️ Voice Reading On';
+        btn.classList.add('active');
+        listenBtn.style.display = 'inline-block';
+        
+        // Check if speech synthesis is supported
+        if(!('speechSynthesis' in window)) {
+            alert('Voice reading is not supported in your browser.');
+            voiceEnabled = false;
+            btn.innerText = '🎙️ Enable Voice Reading';
+            btn.classList.remove('active');
+            listenBtn.style.display = 'none';
+        }
+    } else {
+        btn.innerText = '🎙️ Enable Voice Reading';
+        btn.classList.remove('active');
+        listenBtn.style.display = 'none';
+        window.speechSynthesis.cancel();
+        
+        // Also turn off listening
+        if(listeningEnabled) {
+            toggleListening();
+        }
+    }
+}
+
+function speakText(scenario, choices) {
+    if(!voiceEnabled) return;
+    
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance();
+    utterance.text = scenario + ". Your choices are: ";
+    
+    choices.forEach((choice, idx) => {
+        utterance.text += `Option ${idx + 1}: ${choice.n}. `;
+    });
+    
+    utterance.rate = 0.9;
+    utterance.pitch = 0.8;
+    utterance.volume = 0.8;
+    
+    window.speechSynthesis.speak(utterance);
+}
+
+function toggleListening() {
+    if(!voiceEnabled) return;
+    
+    listeningEnabled = !listeningEnabled;
+    const btn = document.getElementById('listen-toggle');
+    
+    if(listeningEnabled) {
+        btn.innerText = '🎤 Voice Answer (On)';
+        btn.classList.add('active');
+        startListening();
+    } else {
+        btn.innerText = '🎤 Voice Answer (Off)';
+        btn.classList.remove('active');
+        stopListening();
+    }
+}
+
+function startListening() {
+    if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Voice recognition is not supported in your browser.');
+        listeningEnabled = false;
+        document.getElementById('listen-toggle').innerText = '🎤 Voice Answer (Off)';
+        document.getElementById('listen-toggle').classList.remove('active');
+        return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => {
+        document.getElementById('voice-status').innerText = '🎤 Listening for your choice...';
+    };
+    
+    recognition.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+        document.getElementById('voice-status').innerText = `Heard: "${transcript}"`;
+        
+        // Match the spoken text to choices
+        let matched = false;
+        
+        // Check for numbers
+        if(transcript.includes('one') || transcript.includes('1')) {
+            if(currentChoices[0]) { act(currentChoices[0].v); matched = true; }
+        } else if(transcript.includes('two') || transcript.includes('2')) {
+            if(currentChoices[1]) { act(currentChoices[1].v); matched = true; }
+        } else if(transcript.includes('three') || transcript.includes('3')) {
+            if(currentChoices[2]) { act(currentChoices[2].v); matched = true; }
+        } else {
+            // Try to match keywords from choices
+            currentChoices.forEach(choice => {
+                const keywords = choice.n.toLowerCase().split(' ');
+                if(keywords.some(word => transcript.includes(word) && word.length > 3)) {
+                    act(choice.v);
+                    matched = true;
+                }
+            });
+        }
+        
+        if(!matched) {
+            document.getElementById('voice-status').innerText = '❌ Could not match your choice. Try saying "one", "two", or "three"';
+        }
+    };
+    
+    recognition.onerror = (event) => {
+        document.getElementById('voice-status').innerText = `Error: ${event.error}`;
+    };
+    
+    recognition.start();
+}
+
+function stopListening() {
+    if(recognition) {
+        recognition.stop();
+        document.getElementById('voice-status').innerText = '';
+    }
+}
+
+// Initialize volume
+updateVolume(50);
+</script>
+</body>
+</html>
