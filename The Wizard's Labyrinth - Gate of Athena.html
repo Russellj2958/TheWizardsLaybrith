@@ -182,8 +182,52 @@
 </head>
 <body>
 
-<div id="game-board">
-    <div id="setup-screen">
+    <div id="game-board">
+    <div id="instructions-screen">
+        <h1 style="text-align:center; color:var(--gold); font-size:2.5rem; margin-bottom:10px;">⚔️ The Wizard's Labyrinth ⚔️</h1>
+        <p style="text-align:center; font-style:italic; color:var(--ghost-blue); margin-bottom:30px;">A Journey Through Death and Mystery</p>
+        
+        <div style="background:rgba(255,255,255,0.05); padding:25px; border:1px solid #444; margin-bottom:20px;">
+            <h2 style="color:var(--gold); margin-top:0;">📜 How to Play</h2>
+            <p><strong>Goal:</strong> Be the first traveler to reach Step 10 and claim the Heart of the Sun!</p>
+            
+            <h3 style="color:var(--gold); margin-top:20px;">🎮 Game Rules</h3>
+            <ul style="line-height:1.8;">
+                <li><strong>Choose Wisely:</strong> Each scenario has 3 choices with different outcomes:
+                    <ul style="margin-left:20px;">
+                        <li>✅ <strong>Right Path</strong> = Move forward +1 step (play again immediately!)</li>
+                        <li>⬅️ <strong>Backwards</strong> = Move back -1 step (turn ends)</li>
+                        <li>💀 <strong>Death</strong> = Reset to Step 0 and rename your character</li>
+                    </ul>
+                </li>
+                <li><strong>Multiplayer:</strong> Add up to 6 players - take turns making choices</li>
+                <li><strong>The Graveyard:</strong> All deaths are remembered eternally</li>
+                <li><strong>5 Tiers:</strong> Scenarios get darker and stranger as you progress</li>
+            </ul>
+
+            <h3 style="color:var(--gold); margin-top:20px;">🎵 Audio Features</h3>
+            <ul style="line-height:1.8;">
+                <li><strong>Music:</strong> Upload your own atmospheric music files (bottom-right panel)</li>
+                <li><strong>Volume Control:</strong> Adjust music volume with the slider</li>
+                <li><strong>Voice Reading:</strong> Enable AI narrator to read scenarios aloud</li>
+                <li><strong>Voice Control:</strong> Speak your choices (say "one", "two", or "three")</li>
+            </ul>
+
+            <h3 style="color:var(--gold); margin-top:20px;">🎭 Choose Your Class</h3>
+            <ul style="line-height:1.8;">
+                <li><strong>Spellblade:</strong> Master of arcane combat</li>
+                <li><strong>Alchemist:</strong> Wielder of potions and transmutation</li>
+                <li><strong>Paladin:</strong> Holy warrior of divine light</li>
+                <li><strong>Shadow Weaver:</strong> Manipulator of darkness and secrets</li>
+            </ul>
+        </div>
+
+        <div style="text-align:center;">
+            <button class="choice-btn" style="background:var(--gold); color:black; font-size:1.3rem;" onclick="showSetup()">🗝️ Enter the Labyrinth</button>
+        </div>
+    </div>
+
+    <div id="setup-screen" style="display:none;">
         <h1>Wizard's Labyrinth</h1>
         <div id="p-inputs">
             <div style="margin-bottom:10px;">
@@ -641,6 +685,24 @@ function stopListening() {
 
 // Initialize volume
 updateVolume(50);
+
+function showSetup() {
+    document.getElementById('instructions-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'block';
+    
+    // Initialize first player input
+    document.getElementById('p-inputs').innerHTML = `
+        <div style="margin-bottom:10px;">
+            <input type="text" id="p1" placeholder="Traveler Name" style="padding:10px; width:60%">
+            <select id="c1" style="padding:10px;">
+                <option value="Spellblade">Spellblade</option>
+                <option value="Alchemist">Alchemist</option>
+                <option value="Paladin">Paladin</option>
+                <option value="Shadow Weaver">Shadow Weaver</option>
+            </select>
+        </div>
+    `;
+}
 </script>
 </body>
 </html>
